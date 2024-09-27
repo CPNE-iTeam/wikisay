@@ -3,7 +3,6 @@
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
 
-
 const nerdImage = `            !!!!!!!!!!!           
         !!::::::::::::::;!!       
       !::::::::::::::::::::!!     
@@ -20,12 +19,11 @@ const nerdImage = `            !!!!!!!!!!!
          !!!;;;;;;;;;;;!!!        
 `;
 
-
 /**
-Takes input and makes sure it is a valid string
-If "-h" or "--help" is provided, it shows the help
-@returns {string | null}
-*/
+ * Takes input and makes sure it is a valid string
+ * If "-h" or "--help" is provided, it shows the help
+ * @returns {string | null}
+ */
 function ValidateInput() {
     const args = process.argv.slice(2);
     if (
@@ -48,20 +46,20 @@ Example:
 }
 
 /**
-extract txt from the HTML
-@param {string} html The HTML string to clean
-@returns {string} The cleaned text
-*/
+ * extract txt from the HTML
+ * @param {string} html The HTML string to clean
+ * @returns {string} The cleaned text
+ */
 function cleanHtml(html) {
     const dom = new JSDOM(html);
     return dom.window.document.body.textContent.trim();
 }
 
 /**
-Gets the response from the Wikipedia API
-@param {string} question The question to ask the Wikipedia Api
-@returns {Promise<string>} The response from the Aip
-*/
+ * Gets the response from the Wikipedia API
+ * @param {string} question The question to ask the Wikipedia Api
+ * @returns {Promise<string>} The response from the Aip
+ */
 async function GetWikiResponse(question) {
     try {
         const response = await axios.get('https://en.wikipedia.org/w/api.php', {
@@ -72,12 +70,38 @@ async function GetWikiResponse(question) {
                 exintro: true,
                 explain: true,
                 titles: question,
+                redirects: 1,
                 origin: '*'
             }
         });
         const pages = response.data.query.pages;
         const pageId = Object.keys(pages)[0];
-        const answerHtml = pages[pageId].extract || 'Erm i have nothing to say.';
+
+        if (pageId === '-1') {
+            console.warn(`No exact match found for "${question}". Searching for similar titles...`);
+            
+            const searchResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
+                params: {
+                    action: 'query',
+                    list: 'search',
+                    srsearch: question,
+                    format: 'json',
+                    origin: '*'
+                }
+            });
+
+            const searchResults = searchResponse.data.query.search;
+
+            if (searchResults.length > 0) {
+                const closestTitle = searchResults[0].title;
+                console.warn(`Did you mean: "${closestTitle}"? Fetching that page...`);
+                return await GetWikiResponse(closestTitle);
+            } else {
+                return 'Erm, I have nothing to say.';
+            }
+        }
+
+        const answerHtml = pages[pageId].extract || 'Erm, I have nothing to say.';
         return cleanHtml(answerHtml);
     } catch (error) {
         console.error('Error:', error);
@@ -86,8 +110,8 @@ async function GetWikiResponse(question) {
 }
 
 /**
-Prints the text in a box.
-@param {string} text The text to be printed in the box
+ * Prints the text in a box.
+ * @param {string} text The text to be printed in the box
  */
 function printBox(text) {
     const terminalWidth = process.stdout.columns || 80;
@@ -120,8 +144,8 @@ function printBox(text) {
 }
 
 /*
-Main function
-*/
+ * Main function
+ */
 async function main() {
     try {
         const input = ValidateInput();
