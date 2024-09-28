@@ -4,7 +4,7 @@
 
 ![WikiSay image](images/wikisay.png)
 
-# ActivateLinux
+# WikiSay
 A cowsay like cli command, but it returns a wiki answer
 
 </div>
