@@ -36,8 +36,6 @@ Run it with
 wiki
 ```
 
->[!NOTE]
->We are collecting annonymous datas on each command. To not send data, use the command with "-nd" or "--no-data"
 
 <br>
 <br>

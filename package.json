@@ -1,6 +1,6 @@
 {
   "name": "wikisay",
-  "version": "28.09.24-3",
+  "version": "28.09.24-4",
   "description": "Cowsay, but with a nerd that says wikipedia things",
   "main": "./src/wikisay.js",
   "bin": {
@@ -33,7 +33,7 @@
   },
   "homepage": "https://github.com/CPNE-iTeam/wikisay#readme",
   "dependencies": {
-    "axios": "*",
-    "jsdom": ""
+    "axios": "^1.7.7",
+    "jsdom": "^25.0.1"
   }
 }

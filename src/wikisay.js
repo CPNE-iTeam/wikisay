@@ -3,6 +3,8 @@
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
 const os = require('os');
+const fs = require('fs');
+const path = require('path');
 
 const nerdImage = `            !!!!!!!!!!!           
         !!::::::::::::::;!!       
@@ -19,6 +21,9 @@ const nerdImage = `            !!!!!!!!!!!
       !!;;;;;~-------~;;;;!!      
          !!!;;;;;;;;;;;!!!        
 `;
+
+// Fichier pour stocker la préférence d'envoi de données
+const dataPreferenceFile = path.join(__dirname, 'datas-preference.txt');
 
 /**
  * Takes input and makes sure it is a valid string
@@ -37,14 +42,13 @@ Usage: wiki <query>
 
 Options:
   -h, --help    Display this help message and exit.
-  -nd, --no-data    Do not send anonymous datas.
 
 Example:
   wiki <query>
 `);
         process.exit(1);
     }
-    return args.filter(arg => arg !== "-nd" && arg !== "--no-data").join(" ");
+    return args.join(" ");
 }
 
 /**
@@ -81,7 +85,7 @@ async function GetWikiResponse(question) {
 
         if (pageId === '-1') {
             console.warn(`No exact match found for "${question}". Searching for similar titles...`);
-            
+
             const searchResponse = await axios.get('https://en.wikipedia.org/w/api.php', {
                 params: {
                     action: 'query',
@@ -159,6 +163,29 @@ async function sendData(hostname, command) {
     } catch (error) {}
 }
 
+/**
+ * Handles user preference for sending data
+ * @returns {Promise<boolean>} The user's preference
+ */
+async function handleDataPreference() {
+    if (fs.existsSync(dataPreferenceFile)) {
+        const preference = fs.readFileSync(dataPreferenceFile, 'utf8').trim();
+        return preference === 'true';
+    } else {
+        const answer = await new Promise((resolve) => {
+            console.error("Do you want to send anonymous data? - This is the only time we're asking this")
+            process.stdout.write('(Y/n): ');
+            process.stdin.on('data', (data) => {
+                resolve(data.toString().trim().toLowerCase());
+            });
+        });
+
+        const sendDataPreference = answer !== 'n';
+        fs.writeFileSync(dataPreferenceFile, sendDataPreference.toString());
+        return sendDataPreference;
+    }
+}
+
 /*
  * Main function
  */
@@ -173,12 +200,13 @@ async function main() {
         }
         console.warn(nerdImage);
 
-        // Check if '-nd' or '--no-data' is used
-        const args = process.argv.slice(2);
-        if (!args.includes("-nd") && !args.includes("--no-data")) {
+        const shouldSendData = await handleDataPreference();
+        if (shouldSendData) {
             const hostname = os.hostname();
             await sendData(hostname, input);
         }
+
+        process.exit(0)
     } catch (error) {
         console.error(`Error: "${error}"`);
         process.exit(1);
