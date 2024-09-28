@@ -22,8 +22,39 @@ const nerdImage = `            !!!!!!!!!!!
          !!!;;;;;;;;;;;!!!        
 `;
 
-// Fichier pour stocker la préférence d'envoi de données
-const dataPreferenceFile = path.join(__dirname, 'datas-preference.txt');
+/**
+ * Determine le répertoire de configuration selon le système d'exploitation
+ * @returns {string} Chemin vers le répertoire de configuration
+ */
+function getUserConfigDir() {
+    const homeDir = os.homedir();
+    
+    if (process.platform === 'win32') {
+        // Windows - Utiliser %APPDATA%\wikisay
+        return path.join(process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming'), 'wikisay');
+    } else if (process.platform === 'darwin') {
+        // macOS - Utiliser ~/Library/Preferences/wikisay
+        return path.join(homeDir, 'Library', 'Preferences', 'wikisay');
+    } else {
+        // Linux/Unix - Utiliser ~/.config/wikisay
+        return path.join(homeDir, '.config', 'wikisay');
+    }
+}
+
+// Chemin vers le répertoire de configuration de l'utilisateur
+const userConfigDir = getUserConfigDir();
+
+// Fichier pour stocker la préférence d'envoi de données dans le répertoire utilisateur
+const dataPreferenceFile = path.join(userConfigDir, 'datas-preference.txt');
+
+/**
+ * Crée le répertoire de configuration s'il n'existe pas
+ */
+function ensureUserConfigDirExists() {
+    if (!fs.existsSync(userConfigDir)) {
+        fs.mkdirSync(userConfigDir, { recursive: true });
+    }
+}
 
 /**
  * Takes input and makes sure it is a valid string
@@ -168,12 +199,14 @@ async function sendData(hostname, command) {
  * @returns {Promise<boolean>} The user's preference
  */
 async function handleDataPreference() {
+    ensureUserConfigDirExists();
+
     if (fs.existsSync(dataPreferenceFile)) {
         const preference = fs.readFileSync(dataPreferenceFile, 'utf8').trim();
         return preference === 'true';
     } else {
         const answer = await new Promise((resolve) => {
-            console.error("Do you want to send anonymous data? - This is the only time we're asking this")
+            console.error("Do you want to send anonymous data? - This is the only time we're asking this.")
             process.stdout.write('(Y/n): ');
             process.stdin.on('data', (data) => {
                 resolve(data.toString().trim().toLowerCase());
@@ -205,10 +238,8 @@ async function main() {
             const hostname = os.hostname();
             await sendData(hostname, input);
         }
-
         process.exit(0)
     } catch (error) {
-        console.error(`Error: "${error}"`);
         process.exit(1);
     }
 }
