@@ -4,7 +4,7 @@
 
 ![WikiSay image](images/wikisay.png)
 
-# WikiSay
+# Wikisay
 A cowsay like cli command, but it returns a wiki answer
 
 </div>
