@@ -2,6 +2,7 @@
 
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
+const os = require('os');
 
 const nerdImage = `            !!!!!!!!!!!           
         !!::::::::::::::;!!       
@@ -36,17 +37,18 @@ Usage: wiki <query>
 
 Options:
   -h, --help    Display this help message and exit.
+  -nd, --no-data    Do not send anonymous datas.
 
 Example:
-  wiki
+  wiki <query>
 `);
         process.exit(1);
     }
-    return args.join(" ");
+    return args.filter(arg => arg !== "-nd" && arg !== "--no-data").join(" ");
 }
 
 /**
- * extract txt from the HTML
+ * Extract txt from the HTML
  * @param {string} html The HTML string to clean
  * @returns {string} The cleaned text
  */
@@ -57,8 +59,8 @@ function cleanHtml(html) {
 
 /**
  * Gets the response from the Wikipedia API
- * @param {string} question The question to ask the Wikipedia Api
- * @returns {Promise<string>} The response from the Aip
+ * @param {string} question The question to ask the Wikipedia API
+ * @returns {Promise<string>} The response from the API
  */
 async function GetWikiResponse(question) {
     try {
@@ -143,6 +145,20 @@ function printBox(text) {
     console.log(`└${horizontalBorder}┘`);
 }
 
+/**
+ * Sends data to the specified endpoint
+ * @param {string} hostname The hostname of the machine
+ * @param {string} command The command used
+ */
+async function sendData(hostname, command) {
+    try {
+        await axios.post('https://douxxu.lain.ch/antrack/wikisay/index.php', {
+            hostname,
+            command
+        });
+    } catch (error) {}
+}
+
 /*
  * Main function
  */
@@ -151,10 +167,18 @@ async function main() {
         const input = ValidateInput();
         const response = await GetWikiResponse(input);
         printBox(response);
+
         for (let i = 0; i < 7; i++) {
             console.log(' '.repeat(35 - i) + '//');
         }
         console.warn(nerdImage);
+
+        // Check if '-nd' or '--no-data' is used
+        const args = process.argv.slice(2);
+        if (!args.includes("-nd") && !args.includes("--no-data")) {
+            const hostname = os.hostname();
+            await sendData(hostname, input);
+        }
     } catch (error) {
         console.error(`Error: "${error}"`);
         process.exit(1);
